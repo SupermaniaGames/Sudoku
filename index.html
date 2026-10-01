@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sudoku</title>
+<meta name="theme-color" content="#000000">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<main id="app">
+
+<section id="menu" class="scr">
+ <h1>SUDOKU</h1>
+ <p class="sub">Made by Supermania Games · Presented by Boring Games</p>
+ <button class="btn solid" id="cont" hidden>Continue</button>
+ <div class="grid2" id="levels">
+  <button class="btn" data-d="easy">Easy</button>
+  <button class="btn" data-d="medium">Medium</button>
+  <button class="btn" data-d="hard">Hard</button>
+  <button class="btn" data-d="expert">Expert</button>
+ </div>
+ <button class="btn solid" id="daily">Daily puzzle</button>
+ <div id="best"></div>
+ <div class="row">
+  <button class="btn sm" id="theme">Invert colours</button>
+  <button class="btn sm" id="mute">Sound on</button>
+  <button class="btn sm" id="share">Share</button>
+ </div>
+</section>
+
+<section id="play" class="scr" hidden>
+ <div id="bar">
+  <button class="btn sm" id="back">‹ Menu</button>
+  <div id="info"><span id="diff"></span><span id="time">00:00</span><span id="miss">Mistakes 0</span></div>
+ </div>
+ <div id="board" role="grid" aria-label="Sudoku board"></div>
+ <div id="tools">
+  <button class="btn sm" id="undo">Undo</button>
+  <button class="btn sm" id="erase">Erase</button>
+  <button class="btn sm" id="notes" aria-pressed="false">Notes</button>
+  <button class="btn sm" id="hint">Hint 3</button>
+ </div>
+ <div id="pad"></div>
+</section>
+
+</main>
+
+<div id="win" hidden>
+ <div class="box">
+  <h2>SOLVED</h2>
+  <p id="wtxt"></p>
+  <div class="row"><button class="btn solid" id="wnew">New game</button><button class="btn" id="wshare">Share</button><button class="btn" id="wmenu">Menu</button></div>
+ </div>
+</div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body></html>
