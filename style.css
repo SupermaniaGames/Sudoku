@@ -47,3 +47,5 @@ h2{font-size:2rem;letter-spacing:.2em}
 #win p{line-height:1.5}
 #win .btn{flex:1;min-width:90px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+#logo{width:min(46vw,180px);height:auto;border-radius:22px}

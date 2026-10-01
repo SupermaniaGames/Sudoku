@@ -181,7 +181,7 @@ async function share(text){
   if(navigator.share){try{await navigator.share({title:'Sudoku',text,url});return}catch(e){if(e.name==='AbortError')return}}
   window.open('https://wa.me/?text='+encodeURIComponent(text+'\n'+url),'_blank');
 }
-$('#share').onclick=()=>share();
+$('#shareapp').onclick=()=>share();
 $('#wshare').onclick=()=>share('I solved a '+NM[G.diff]+' Sudoku in '+fmt(G.secs)+'. Can you beat it?');
 
 /* ---------- back button goes to the menu (progress is saved) ---------- */
@@ -198,5 +198,33 @@ if('serviceWorker' in navigator){
   });
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
 }
+
+/* ---------- install button ---------- */
+let installEvt=null;
+const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const showInstall=()=>{$('#install').hidden=!!standalone||(!installEvt&&!isIOS)};
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;showInstall()});
+addEventListener('appinstalled',()=>{installEvt=null;showInstall()});
+$('#install').onclick=async()=>{
+  if(installEvt){installEvt.prompt();await installEvt.userChoice;installEvt=null;showInstall()}
+  else alert('On iPhone: tap the Share button, then Add to Home Screen.');
+};
+showInstall();
+
+/* ---------- reload when a newer version is on the server ---------- */
+const FILES=['index.html','style.css','engine.js','app.js','manifest.json'];
+async function sig(){
+  try{
+    const t=await Promise.all(FILES.map(f=>fetch(f+'?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'')));
+    let h=0;for(const ch of t.join('|'))h=(h*31+ch.charCodeAt(0))|0;return h;
+  }catch(e){return null}
+}
+let loadedSig=null;sig().then(s=>loadedSig=s);
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||loadedSig==null)return;
+  const s=await sig();
+  if(s!=null&&s!==loadedSig){save();location.reload()}
+});
 menu();
 })();

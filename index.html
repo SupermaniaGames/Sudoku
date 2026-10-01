@@ -1,16 +1,17 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sudoku</title>
+<title>Supermania Sudoku</title>
 <meta name="theme-color" content="#000000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css">
+<script>var _t=Date.now();document.write('<link rel="stylesheet" href="style.css?t='+_t+'">')</script>
 </head><body>
 <main id="app">
 
 <section id="menu" class="scr">
+ <img id="logo" src="home-logo.png" alt="" onerror="this.remove()">
  <h1>SUDOKU</h1>
  <p class="sub">Made by Supermania Games · Presented by Boring Games</p>
  <button class="btn solid" id="cont" hidden>Continue</button>
@@ -21,11 +22,13 @@
   <button class="btn" data-d="expert">Expert</button>
  </div>
  <button class="btn solid" id="daily">Daily puzzle</button>
+ <button class="btn" id="install" hidden>Install app</button>
+ <button class="btn" id="shareapp">Share app</button>
  <div id="best"></div>
  <div class="row">
   <button class="btn sm" id="theme">Invert colours</button>
   <button class="btn sm" id="mute">Sound on</button>
-  <button class="btn sm" id="share">Share</button>
+  
  </div>
 </section>
 
@@ -54,6 +57,5 @@
  </div>
 </div>
 
-<script src="engine.js"></script>
-<script src="app.js"></script>
+<script>document.write('<script src="engine.js?t='+_t+'"><\/script><script src="app.js?t='+_t+'"><\/script>')</script>
 </body></html>

@@ -1,6 +1,6 @@
 // Network-first: every request goes to the server (HTTP cache bypassed).
 // The cache is used ONLY when the network fails (offline).
-const NAME='sudoku-offline';
+const NAME='hub-offline';
 const key=u=>u.split('?')[0];
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
