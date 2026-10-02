@@ -6,7 +6,7 @@ const LS={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
 let G=null,sel=-1,pencil=false,timer=null,hist=[];
-let muted=LS.get('sdk_mute',false),light=LS.get('sdk_light',false);
+let muted=LS.get('sdk_mute',false),cloud=null,pushT=null;
 const BOX=i=>((i/27|0)*3)+((i%9)/3|0);
 const peers=(a,b)=>a!==b&&((a/9|0)===(b/9|0)||a%9===b%9||BOX(a)===BOX(b));
 const fmt=s=>String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
@@ -25,13 +25,8 @@ function beep(f,d,type,v,delay){
   }catch(e){}
 }
 
-/* ---------- theme ---------- */
-function applyTheme(){
-  document.body.classList.toggle('light',light);
-  document.querySelector('meta[name=theme-color]').content=light?'#ffffff':'#000000';
-  $('#mute').textContent=muted?'Sound off':'Sound on';
-}
-$('#theme').onclick=()=>{light=!light;LS.set('sdk_light',light);applyTheme()};
+/* ---------- sound toggle ---------- */
+function applyTheme(){$('#mute').textContent=muted?'Sound off':'Sound on'}
 $('#mute').onclick=()=>{muted=!muted;LS.set('sdk_mute',muted);applyTheme();beep(600,.06)};
 applyTheme();
 
@@ -128,14 +123,38 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- game flow ---------- */
-function save(){if(G&&!G.done)LS.set('sdk_game',G)}
+function save(){if(G&&!G.done){G.upd=Date.now();LS.set('sdk_game',G);LS.set('sdk_upd',G.upd);cloudPush()}}
+function cloudPush(now){
+  if(!cloud||!cloud.me())return;
+  clearTimeout(pushT);
+  const go=()=>cloud.push({
+    game:JSON.stringify(LS.get('sdk_game',null)),upd:LS.get('sdk_upd',Date.now()),
+    best:LS.get('sdk_best',{}),solved:LS.get('sdk_solved',0),daily:LS.get('sdk_daily',0)
+  }).catch(()=>{});
+  if(now)go();else pushT=setTimeout(go,4000);
+}
+async function pullSave(){
+  try{
+    const c=await cloud.pull();
+    if(!c){cloudPush(true);return}
+    const best=Object.assign({},LS.get('sdk_best',{}));
+    for(const d in(c.best||{}))best[d]=best[d]?Math.min(best[d],c.best[d]):c.best[d];
+    LS.set('sdk_best',best);
+    LS.set('sdk_solved',Math.max(LS.get('sdk_solved',0),c.solved||0));
+    LS.set('sdk_daily',Math.max(LS.get('sdk_daily',0),c.daily||0));
+    if((c.upd||0)>LS.get('sdk_upd',0)&&$('#play').hidden){
+      LS.set('sdk_game',JSON.parse(c.game||'null'));LS.set('sdk_upd',c.upd);
+    }else cloudPush(true);
+    if(!$('#menu').hidden)menu();
+  }catch(e){}
+}
 function startTimer(){
   clearInterval(timer);
   timer=setInterval(()=>{if(G&&!G.done&&document.visibilityState==='visible'){G.secs++;$('#time').textContent=fmt(G.secs);if(G.secs%5===0)save()}},1000);
 }
-function show(id){$('#menu').hidden=id!=='menu';$('#play').hidden=id!=='play'}
+function show(id){['menu','play','auth'].forEach(s=>$('#'+s).hidden=s!==id)}
 function menu(){
-  clearInterval(timer);save();show('menu');
+  clearInterval(timer);save();cloudPush(true);show('menu');renderMe();
   const saved=LS.get('sdk_game',null);
   $('#cont').hidden=!saved;
   if(saved)$('#cont').textContent='Continue · '+(saved.daily?'Daily · ':'')+NM[saved.diff]+' · '+fmt(saved.secs);
@@ -166,13 +185,46 @@ function win(){
   if(pb&&!G.daily){best[G.diff]=G.secs;LS.set('sdk_best',best)}
   LS.set('sdk_solved',LS.get('sdk_solved',0)+1);
   if(G.daily)LS.set('sdk_daily',today());
-  LS.set('sdk_game',null);
+  LS.set('sdk_game',null);LS.set('sdk_upd',Date.now());cloudPush(true);
   [523,659,784,1047].forEach((f,i)=>beep(f,.3,'triangle',.15,i*.12));
   $('#wtxt').innerHTML=NM[G.diff]+(G.daily?' daily':'')+' puzzle<br>Time '+fmt(G.secs)+' · Mistakes '+G.mistakes+' · Hints '+G.hints+(pb&&!G.daily?'<br><b>New best time</b>':'');
+  const cf=$('#confetti');cf.innerHTML='';
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches)
+    for(let i=0;i<26;i++){const s=document.createElement('span');s.textContent=['🎉','✨','⭐','🎊'][i%4];
+      s.style.left=Math.random()*100+'%';s.style.animationDuration=3+Math.random()*3+'s';s.style.animationDelay=Math.random()*3+'s';cf.append(s)}
   $('#win').hidden=false;
 }
 $('#wnew').onclick=()=>{$('#win').hidden=true;start(G.daily?'medium':G.diff,false)};
 $('#wmenu').onclick=()=>{$('#win').hidden=true;menu()};
+
+/* ---------- login ---------- */
+const fe=e=>({'auth/email-already-in-use':'That username is taken','auth/invalid-credential':'Wrong username or password','auth/user-not-found':'Wrong username or password','auth/wrong-password':'Wrong username or password','auth/operation-not-allowed':'Turn on this sign-in method in Firebase','auth/admin-restricted-operation':'Turn on Anonymous sign-in in Firebase','auth/network-request-failed':'No connection','permission-denied':'Database rules are blocking this'}[e.code]||e.message||String(e));
+function renderMe(){
+  const u=cloud&&cloud.me(),m=$('#me');m.innerHTML='';
+  const nm=document.createElement('span');nm.className='uname';nm.textContent=u?'👤 '+u.name:'Not signed in';
+  const b=document.createElement('button');b.className='btn sm';
+  if(u){b.textContent='Log out';b.onclick=async()=>{await cloud.logout();renderMe()}}
+  else{b.textContent='Sign in';b.onclick=()=>{$('#aerr').textContent=cloud?'':'Online save is not set up yet. Check firebase-config.js';show('auth')}}
+  m.append(nm,b);
+}
+async function doAuth(kind){
+  if(!cloud){$('#aerr').textContent='Online save is not set up yet. Check firebase-config.js';return}
+  const t=$('#u').value.trim(),p=$('#p').value,ok=/^[A-Za-z0-9_]{3,14}$/.test(t);
+  try{
+    if(kind==='guest')await cloud.guest(ok?t:'Guest'+(1000+Math.floor(Math.random()*9000)));
+    else{
+      if(!ok)return void($('#aerr').textContent='Username: 3-14 letters, numbers or _');
+      if(p.length<6)return void($('#aerr').textContent='Password needs 6 or more characters');
+      kind==='up'?await cloud.signUp(t,p):await cloud.signIn(t,p);
+    }
+    $('#aerr').textContent='';renderMe();pullSave();menu();
+  }catch(e){$('#aerr').textContent=fe(e)}
+}
+$('#signin').onclick=()=>doAuth('in');
+$('#signup').onclick=()=>doAuth('up');
+$('#guest').onclick=()=>doAuth('guest');
+$('#aback').onclick=menu;
+import('./sync.js?t='+Date.now()).then(m=>{cloud=m;m.onUser(()=>{renderMe();if(m.me())pullSave()})}).catch(e=>{console.error('Cloud save off:',e);renderMe()});
 
 /* ---------- share ---------- */
 async function share(text){
@@ -187,7 +239,7 @@ $('#wshare').onclick=()=>share('I solved a '+NM[G.diff]+' Sudoku in '+fmt(G.secs
 /* ---------- back button goes to the menu (progress is saved) ---------- */
 let armed=false;
 document.addEventListener('pointerdown',()=>{if(!armed){armed=true;history.pushState({s:1},'')}},{passive:true});
-addEventListener('popstate',()=>{armed=false;if(!$('#win').hidden)$('#wmenu').click();else if(!$('#play').hidden)menu()});
+addEventListener('popstate',()=>{armed=false;if(!$('#win').hidden)$('#wmenu').click();else if(!$('#play').hidden||!$('#auth').hidden)menu()});
 
 /* ---------- updates always come from the network ---------- */
 if('serviceWorker' in navigator){
@@ -213,7 +265,7 @@ $('#install').onclick=async()=>{
 showInstall();
 
 /* ---------- reload when a newer version is on the server ---------- */
-const FILES=['index.html','style.css','engine.js','app.js','manifest.json'];
+const FILES=['index.html','style.css','engine.js','app.js','sync.js','manifest.json'];
 async function sig(){
   try{
     const t=await Promise.all(FILES.map(f=>fetch(f+'?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'')));

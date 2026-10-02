@@ -2,13 +2,13 @@
  "id": "supermania-sudoku-app",
  "name": "Supermania Sudoku",
  "short_name": "Sudoku",
- "description": "Black and white Sudoku. Made by Supermania Games.",
+ "description": "Sudoku with daily puzzles and cloud save. Made by Supermania Games.",
  "start_url": "./?source=pwa",
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",
- "background_color": "#000000",
- "theme_color": "#000000",
+ "background_color": "#0d1b3e",
+ "theme_color": "#0d1b3e",
  "icons": [
   {
    "src": "icon-192.png",

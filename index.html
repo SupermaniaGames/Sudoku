@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Supermania Sudoku</title>
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0d1b3e">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
@@ -11,25 +11,35 @@
 <main id="app">
 
 <section id="menu" class="scr">
+ <div id="me"></div>
  <img id="logo" src="home-logo.png" alt="" onerror="this.remove()">
  <h1>SUDOKU</h1>
  <p class="sub">Made by Supermania Games · Presented by Boring Games</p>
- <button class="btn solid" id="cont" hidden>Continue</button>
+ <button class="btn p" id="cont" hidden>Continue</button>
  <div class="grid2" id="levels">
   <button class="btn" data-d="easy">Easy</button>
   <button class="btn" data-d="medium">Medium</button>
   <button class="btn" data-d="hard">Hard</button>
   <button class="btn" data-d="expert">Expert</button>
  </div>
- <button class="btn solid" id="daily">Daily puzzle</button>
- <button class="btn" id="install" hidden>Install app</button>
- <button class="btn" id="shareapp">Share app</button>
+ <button class="btn p" id="daily">Daily puzzle</button>
+ <button class="btn" id="install" hidden>⬇ Install app</button>
+ <button class="btn" id="shareapp">📤 Share app</button>
  <div id="best"></div>
- <div class="row">
-  <button class="btn sm" id="theme">Invert colours</button>
-  <button class="btn sm" id="mute">Sound on</button>
-  
- </div>
+ <button class="btn sm" id="mute">Sound on</button>
+</section>
+
+<section id="auth" class="scr" hidden>
+ <h2>Save your progress</h2>
+ <p class="sub">Sign in to keep your games and best times on every device. Same account as Supermania Ludo.</p>
+ <input id="u" placeholder="Username" autocomplete="username" maxlength="14" autocapitalize="off">
+ <input id="p" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
+ <button class="btn p" id="signin">Sign in</button>
+ <button class="btn" id="signup">Create account</button>
+ <button class="btn" id="guest">Play as guest</button>
+ <p class="hint">Guests are saved too, on this account only. Type a name above to use it as your guest name.</p>
+ <p class="err" id="aerr"></p>
+ <button class="btn" id="aback">Back</button>
 </section>
 
 <section id="play" class="scr" hidden>
@@ -50,10 +60,11 @@
 </main>
 
 <div id="win" hidden>
+ <div id="confetti"></div>
  <div class="box">
-  <h2>SOLVED</h2>
+  <h2>SOLVED!</h2>
   <p id="wtxt"></p>
-  <div class="row"><button class="btn solid" id="wnew">New game</button><button class="btn" id="wshare">Share</button><button class="btn" id="wmenu">Menu</button></div>
+  <div class="row"><button class="btn p" id="wnew">New game</button><button class="btn" id="wshare">Share</button><button class="btn" id="wmenu">Menu</button></div>
  </div>
 </div>
 
