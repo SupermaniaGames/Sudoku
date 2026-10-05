@@ -22,7 +22,7 @@ function beep(f,d,type,v,delay){
     const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+(delay||0);
     o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.12,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
     o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d);
-  }catch(e){}
+  }catch(e){setSync('Could not load your cloud save: '+(e.code||e.message))}
 }
 
 /* ---------- sound toggle ---------- */
@@ -124,13 +124,23 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- game flow ---------- */
 function save(){if(G&&!G.done){G.upd=Date.now();LS.set('sdk_game',G);LS.set('sdk_upd',G.upd);cloudPush()}}
+let syncMsg='';
+function setSync(m){syncMsg=m;const el=$('#sync');if(el)el.textContent=m}
+function syncInfo(){
+  const u=cloud&&cloud.me();
+  if(!cloud)return 'Cloud save is off: progress stays on this device.';
+  if(!u)return 'Not signed in: progress stays on this device. Sign in to sync devices.';
+  if(u.guest)return 'Guest account: progress stays on this phone. Sign in with username or Google to sync devices.';
+  return syncMsg||'Signed in. Progress syncs to your account.';
+}
 function cloudPush(now){
   if(!cloud||!cloud.me())return;
   clearTimeout(pushT);
   const go=()=>cloud.push({
     game:JSON.stringify(LS.get('sdk_game',null)),upd:LS.get('sdk_upd',Date.now()),
     best:LS.get('sdk_best',{}),solved:LS.get('sdk_solved',0),daily:LS.get('sdk_daily',0)
-  }).catch(()=>{});
+  }).then(()=>setSync('Saved to your account at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})))
+    .catch(e=>setSync('Cloud save FAILED: '+(e.code||e.message)+(e.code==='permission-denied'?'. Add the sudokuSaves rule in Firestore.':'')));
   if(now)go();else pushT=setTimeout(go,4000);
 }
 async function pullSave(){
@@ -154,7 +164,7 @@ function startTimer(){
 }
 function show(id){['menu','play','auth'].forEach(s=>$('#'+s).hidden=s!==id)}
 function menu(){
-  clearInterval(timer);save();cloudPush(true);show('menu');renderMe();
+  clearInterval(timer);save();cloudPush(true);show('menu');renderMe();$('#sync').textContent=syncInfo();
   const saved=LS.get('sdk_game',null);
   $('#cont').hidden=!saved;
   if(saved)$('#cont').textContent='Continue · '+(saved.daily?'Daily · ':'')+NM[saved.diff]+' · '+fmt(saved.secs);
@@ -198,7 +208,7 @@ $('#wnew').onclick=()=>{$('#win').hidden=true;start(G.daily?'medium':G.diff,fals
 $('#wmenu').onclick=()=>{$('#win').hidden=true;menu()};
 
 /* ---------- login ---------- */
-const fe=e=>({'auth/email-already-in-use':'That username is taken','auth/invalid-credential':'Wrong username or password','auth/user-not-found':'Wrong username or password','auth/wrong-password':'Wrong username or password','auth/operation-not-allowed':'Turn on this sign-in method in Firebase','auth/admin-restricted-operation':'Turn on Anonymous sign-in in Firebase','auth/network-request-failed':'No connection','permission-denied':'Database rules are blocking this'}[e.code]||e.message||String(e));
+const fe=e=>({'auth/email-already-in-use':'That username is taken','auth/invalid-credential':'Wrong username or password','auth/user-not-found':'Wrong username or password','auth/wrong-password':'Wrong username or password','auth/operation-not-allowed':'Turn on this sign-in method in Firebase','auth/admin-restricted-operation':'Turn on Anonymous sign-in in Firebase','auth/network-request-failed':'No connection','auth/popup-closed-by-user':'Sign-in window was closed','auth/unauthorized-domain':'Add this website under Firebase > Authentication > Settings > Authorized domains','permission-denied':'Database rules are blocking this'}[e.code]||e.message||String(e));
 function renderMe(){
   const u=cloud&&cloud.me(),m=$('#me');m.innerHTML='';
   const nm=document.createElement('span');nm.className='uname';nm.textContent=u?'👤 '+u.name:'Not signed in';
@@ -211,7 +221,8 @@ async function doAuth(kind){
   if(!cloud){$('#aerr').textContent='Online save is not set up yet. Check firebase-config.js';return}
   const t=$('#u').value.trim(),p=$('#p').value,ok=/^[A-Za-z0-9_]{3,14}$/.test(t);
   try{
-    if(kind==='guest')await cloud.guest(ok?t:'Guest'+(1000+Math.floor(Math.random()*9000)));
+    if(kind==='google')await cloud.google();
+    else if(kind==='guest')await cloud.guest(ok?t:'Guest'+(1000+Math.floor(Math.random()*9000)));
     else{
       if(!ok)return void($('#aerr').textContent='Username: 3-14 letters, numbers or _');
       if(p.length<6)return void($('#aerr').textContent='Password needs 6 or more characters');
@@ -223,6 +234,7 @@ async function doAuth(kind){
 $('#signin').onclick=()=>doAuth('in');
 $('#signup').onclick=()=>doAuth('up');
 $('#guest').onclick=()=>doAuth('guest');
+$('#google').onclick=()=>doAuth('google');
 $('#aback').onclick=menu;
 import('./sync.js?t='+Date.now()).then(m=>{cloud=m;m.onUser(()=>{renderMe();if(m.me())pullSave()})}).catch(e=>{console.error('Cloud save off:',e);renderMe()});
 
